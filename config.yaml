@@ -1,0 +1,64 @@
+# ========================================================
+# ⚠️ Model Capacity Constraints
+# ========================================================
+# 1. cconv_embedding_dim: output feature dimension of continuous convolutions.
+#    Higher values increase model capacity.
+#
+# 2. slot_attn_heads: number of attention heads in slot attention.
+#    Must satisfy:
+#        combined_feat_dim % slot_attn_heads == 0
+#    where
+#        combined_feat_dim = cconv_embedding_dim * factor
+#        factor = 3 for fluid data, 2 for protein data
+#    Each head dimension: dim_head = combined_feat_dim / slot_attn_heads
+#
+# 3. particle_position_rope_dim: RoPE encoding dimension for particle positions.
+#    Must satisfy:
+#        particle_position_rope_dim % 6 == 0  # 3D positions × (cos + sin)
+#        particle_position_rope_dim <= dim_head
+#
+# 4. CrossAttentionWeightedPoswithFeature:
+#    input feature dimension `dim` must be divisible by n_heads:
+#        dim % n_heads == 0
+# ========================================================
+
+device: cuda
+
+gravity: [0.0, -9.81, 0.0]
+timestep: 0.01
+particle_radius: 0.012
+
+kernel_size: [4, 4, 4]
+cconv_embedding_dim: 384
+radius_scale: 1.5
+coordinate_mapping: ball_to_cube_volume_preserving
+interpolation: linear
+use_window: true
+# Topology branch controls:
+# - null => use built-in rules declared in TrajDataset.py
+# - true/false or numeric radius => manual override
+use_topology_conv: null
+topology_search_radius: null
+# topology_blend_alpha:
+# - null => learnable alpha
+# - number in [0,1] => fixed alpha
+topology_blend_alpha: null
+
+slot_compression_ratio: 4  # never used
+slot_attn_iters: 6
+slot_attn_heads: 16
+k_partite: 2
+particle_position_rope_dim: 48   # 必须 %6 == 0
+num_decoder_layers: 8
+decoder_attn_heads: 12
+decoder_attn_ffn_hidden_dim: 512
+decoder_attn_dropout: 0.1
+output_hidden_dim: 512
+output_layers: 5
+verbose: false
+
+data: fancy_fluid
+velhead: True
+
+frame_start: 0
+frame_end: 600
